@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String           @id
+  nickname          String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  writingSessions   WritingSession[]
+  providerType      ProviderType
+  encryptedPassword String?
+  userBadges        userBadge[]
+}
+
+enum ProviderType {
+  kakao
+  google
+  test
+}
+
+model WritingSession {
+  id             Int                  @id @default(autoincrement())
+  user           User                 @relation(fields: [userId], references: [id])
+  userId         String
+  subject        String
+  period         Int
+  page           Int
+  startAt        Json
+  writingHours   Int
+  writings       Writing[]
+  status         WritingSessionStatus @default(onProcess)
+  modifyingCount Int                  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum WritingSessionStatus {
+  onProcess
+  aborted
+  completed
+}
+
+model Writing {
+  id      Int    @id @default(autoincrement())
+  title   String
+  content String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  writingSession   WritingSession? @relation(fields: [writingSessionId], references: [id])
+  writingSessionId Int?
+}
+
+model userBadge {
+  id      Int    @id @default(autoincrement())
+  userId  String
+  badgeId Int
+
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+}
+
+model Badge {
+  id          Int            @id @default(autoincrement())
+  name        String
+  description String?
+  imageUrl    String?
+  condition   BadgeCondition
+  userBadges  userBadge[]
+}
+
+enum BadgeCondition {
+  firstWritingUploaded
+  partialCompleted25
+  partialCompleted50
+  partialCompleted75
+  completed
+  failed
+}
