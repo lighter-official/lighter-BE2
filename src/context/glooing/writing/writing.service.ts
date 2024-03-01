@@ -1,15 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { CreateWritingDto, UpdateWritingDto } from './writing.dto';
-import { User, WritingSession, WritingSessionStatus } from '@prisma/client';
+import {
+  BadgeCondition,
+  User,
+  WritingSession,
+  WritingSessionStatus,
+} from '@prisma/client';
 import { PrismaService } from 'src/db/prisma/prisma.service';
 import { calculateProgressPercentage } from 'src/context/utils/calculateProgressPercentage';
-import { day } from 'src/lib/dayjs';
-import { WritingSessionStartAt } from '../writing-session/writing-session.type';
 import { Exception, ExceptionCode } from 'src/app.exception';
+import { UserBadgeService } from 'src/context/reward/userBadge/userBadge.service';
 
 @Injectable()
 export class WritingService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly userBadgeService: UserBadgeService,
+  ) {}
 
   async getWriting(user: User, writingId: number) {
     const writing = await this.prismaService.writing.findUnique({
@@ -40,9 +47,37 @@ export class WritingService {
       data: { title, content, writingSessionId: writingSession.id },
     });
 
-    //TODO: 이벤트 추가
+    // 달성율 업데이트
+    const newCount = writingSession._count.writings + 1;
+    const progressPercentage = calculateProgressPercentage(
+      writingSession.page,
+      newCount,
+    );
+    await this.prismaService.writingSession.update({
+      where: { id: writingSession.id },
+      data: { progressPercentage },
+    });
 
-    return { writing, count: writingSession._count.writings + 1 };
+    // 뱃지 지급
+    const badgeConditions: BadgeCondition[] = [
+      BadgeCondition.firstWritingUploaded,
+    ];
+    if (progressPercentage >= 25)
+      badgeConditions.push(BadgeCondition.partialCompleted25);
+    if (progressPercentage >= 50)
+      badgeConditions.push(BadgeCondition.partialCompleted50);
+    if (progressPercentage >= 75)
+      badgeConditions.push(BadgeCondition.partialCompleted75);
+    if (progressPercentage === 100)
+      badgeConditions.push(BadgeCondition.completed);
+
+    const newBadges = await Promise.all(
+      badgeConditions.map((badgeCondition) =>
+        this.userBadgeService.acquireBadge(user, badgeCondition),
+      ),
+    ).then((userBadges) => userBadges.filter(Boolean));
+
+    return { writing, count: newCount, newBadges };
   }
 
   async updateWriting(

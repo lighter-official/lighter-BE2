@@ -74,6 +74,8 @@ model userBadge {
 
   user  User  @relation(fields: [userId], references: [id])
   badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
 }
 
 model Badge {
@@ -81,7 +83,7 @@ model Badge {
   name        String
   description String?
   imageUrl    String?
-  condition   BadgeCondition
+  condition   BadgeCondition @unique
   userBadges  userBadge[]
 }
 
