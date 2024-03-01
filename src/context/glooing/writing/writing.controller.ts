@@ -19,6 +19,15 @@ import { User as TUser } from '@prisma/client';
 export class WritingController {
   constructor(private readonly writingService: WritingService) {}
 
+  @Get(':writingId')
+  @Roles(ROLE.USER)
+  getWriting(
+    @User() user: TUser,
+    @Param('writingId', ParseIntPipe) writingId: number,
+  ) {
+    return this.writingService.getWriting(user, writingId);
+  }
+
   @Post()
   @Roles(ROLE.USER)
   createWriting(
