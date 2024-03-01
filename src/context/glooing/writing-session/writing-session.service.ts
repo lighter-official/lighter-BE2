@@ -6,6 +6,8 @@ import {
 } from './writing-session.dto';
 import { PrismaService } from 'src/db/prisma/prisma.service';
 import { Exception, ExceptionCode } from 'src/app.exception';
+import { day } from 'src/lib/dayjs';
+import { Dayjs } from 'dayjs';
 
 @Injectable()
 export class WritingSessionService {
@@ -18,6 +20,17 @@ export class WritingSessionService {
     const { page, period, startAt, subject, writingHours } =
       createWritingSessionDto;
 
+    const existingOnProcessWritingSession =
+      await this.prismaService.writingSession.findFirst({
+        where: { userId: user.id, status: WritingSessionStatus.onProcess },
+      });
+    if (existingOnProcessWritingSession)
+      throw new Exception(
+        ExceptionCode.BadRequest,
+        '진행 중인 글쓰기가 있습니다.',
+      );
+
+    const now = day();
     if (
       !page ||
       !period ||
@@ -30,61 +43,61 @@ export class WritingSessionService {
     )
       throw new Exception(ExceptionCode.InsufficientParameters);
 
-    // const existingOnProcessWritingSession =
-    //   await this.prismaService.writingSession.findFirst({
-    //     where: {
-    //       userId: user.id,
-    //       status: WritingSessionStatus.onProcess,
-    //       startAt: startAt as Prisma.JsonFilter<'WritingSession'>,
-    //     },
-    //   });
+    const finishedAt = this.calculateFinishedAt(
+      now,
+      period,
+      startAt.hour,
+      startAt.minute,
+      writingHours,
+    );
 
     const writingSession = await this.prismaService.writingSession.create({
-      data: { page, period, startAt, subject, writingHours, userId: user.id },
+      data: {
+        page,
+        period,
+        startAt,
+        subject,
+        writingHours,
+        userId: user.id,
+        finishedAt,
+      },
     });
 
     return writingSession;
   }
 
-  // async updateWritingSession(
-  //   id: number,
-  //   user: User,
-  //   updateWritingSessionDto: UpdateWritingSessionDto,
-  // ) {
-  //   const { startAt, ...data } = updateWritingSessionDto;
-  //   // start_time을 원하는 포맷으로 변환
-  //   const startTimeFormatted = /* 변환 로직 */ '';
+  calculateFinishedAt(
+    now: Dayjs,
+    period: number,
+    hour: number,
+    minute: number,
+    writingHours: number,
+  ) {
+    const finishedAt = now
+      .add(period - 1, 'day')
+      .startOf('day')
+      .add(hour + writingHours, 'hour')
+      .add(minute, 'minute')
+      .toDate();
 
-  //   const session = await this.prismaService.writingSession.findUnique({
-  //     where: {
-  //       id,
-  //       userId: user.id,
-  //     },
-  //   });
-
-  //   if (!existingSession) {
-  //     await this.prismaService.writingSession.create({
-  //       data: {
-  //         ...data,
-  //         userId,
-  //         start_time: startTimeFormatted,
-  //         change_num: 0,
-  //       },
-  //     });
-  //     return { result: 'inserted' };
-  //   } else {
-  //     await this.prisma.writingSetting.update({
-  //       where: { userId },
-  //       data: {
-  //         ...data,
-  //         start_time: startTimeFormatted,
-  //       },
-  //     });
-  //     return { result: 'updated' };
-  //   }
-  // }
+    return finishedAt;
+  }
 
   remove(id: number) {
     return `This action removes a #${id} writingSetting`;
+  }
+
+  async getOnProcessWritingSession(user: User) {
+    const writingSession = await this.prismaService.writingSession.findFirst({
+      where: { userId: user.id, status: WritingSessionStatus.onProcess },
+      include: {
+        writings: {
+          select: { id: true, title: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    return writingSession;
   }
 }

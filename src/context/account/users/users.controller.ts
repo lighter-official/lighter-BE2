@@ -8,6 +8,7 @@ import {
 import { Roles } from 'src/decorators/roles.decorator';
 import { ROLE } from '../account.constant';
 import { User as TUser } from '@prisma/client';
+import { User } from 'src/decorators/user.decorator';
 
 @Controller('/account/users')
 export class UsersController {
@@ -48,7 +49,7 @@ export class UsersController {
 
   @Get('me')
   @Roles(ROLE.USER)
-  getMe(user: TUser) {
+  getMe(@User() user: TUser) {
     return this.usersService.getMe(user);
   }
 }

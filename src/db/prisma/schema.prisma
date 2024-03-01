@@ -28,20 +28,23 @@ enum ProviderType {
 }
 
 model WritingSession {
-  id             Int                  @id @default(autoincrement())
-  user           User                 @relation(fields: [userId], references: [id])
-  userId         String
-  subject        String
-  period         Int
-  page           Int
-  startAt        Json
-  writingHours   Int
-  writings       Writing[]
-  status         WritingSessionStatus @default(onProcess)
-  modifyingCount Int                  @default(0)
+  id                 Int                  @id @default(autoincrement())
+  user               User                 @relation(fields: [userId], references: [id])
+  userId             String
+  subject            String
+  period             Int
+  page               Int
+  startAt            Json
+  writingHours       Int
+  writings           Writing[]
+  status             WritingSessionStatus @default(onProcess)
+  isActivated        Boolean              @default(false)
+  modifyingCount     Int                  @default(0)
+  progressPercentage Float                @default(0)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  finishedAt DateTime?
 }
 
 enum WritingSessionStatus {

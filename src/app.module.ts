@@ -4,11 +4,14 @@ import { AppService } from './app.service';
 import { DBModule } from './db/db.module';
 import { ContextModule } from './context/context.module';
 import { InjectAccountMiddleware } from './middlewares/InjectAccount.middleware';
+import { KakaoModule } from './service/kakao/kakao.module';
+import { RolesGuard } from './guards/roles.guard';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
-  imports: [DBModule, ContextModule],
+  imports: [DBModule, ContextModule, KakaoModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: RolesGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -5,6 +5,7 @@ import {
   Put,
   Param,
   ParseIntPipe,
+  Get,
 } from '@nestjs/common';
 import { WritingSessionService } from './writing-session.service';
 import { Roles } from 'src/decorators/roles.decorator';
@@ -15,6 +16,7 @@ import {
   CreateWritingSessionDto,
   UpdateWritingSessionDto,
 } from './writing-session.dto';
+import { day } from 'src/lib/dayjs';
 
 @Controller('writing-session')
 export class WritingSessionController {
@@ -32,6 +34,12 @@ export class WritingSessionController {
     );
   }
 
+  @Get('on-process')
+  @Roles(ROLE.USER)
+  getOnProcessWritingSession(@User() user: TUser) {
+    return this.writingSessionService.getOnProcessWritingSession(user);
+  }
+
   // @Put(':/id')
   // @Roles(ROLE.USER)
   // updateWritingSession(
@@ -45,4 +53,6 @@ export class WritingSessionController {
   //     updateWritingSessionDto,
   //   );
   // }
+
+  //TODO: 글쓰기 활성 크론 추가
 }
