@@ -61,7 +61,7 @@ model Writing {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  writingSession   WritingSession? @relation(fields: [writingSessionId], references: [id])
+  writingSession   WritingSession? @relation(fields: [writingSessionId], references: [id], onDelete: Cascade)
   writingSessionId Int?
 }
 
