@@ -30,19 +30,19 @@ export class WritingService {
 
     const writingSession = await this.prismaService.writingSession.findFirst({
       where: { userId: user.id, status: WritingSessionStatus.onProcess },
-      include: { _count: true },
+      include: { _count: { select: { writings: true } } },
     });
     this.barrier_WritingSessionMustBeActivatedWhenCreatingWriting(
       writingSession,
     );
 
     const writing = await this.prismaService.writing.create({
-      data: { title, content },
+      data: { title, content, writingSessionId: writingSession.id },
     });
 
     //TODO: 이벤트 추가
 
-    return { writing, count: writingSession._count };
+    return { writing, count: writingSession._count.writings + 1 };
   }
 
   async updateWriting(
