@@ -8,7 +8,7 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start": "pm2 start dotenv -e .env.local -- nest start --watch",
     "start:dev": "dotenv -e .env.local -- nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
@@ -28,6 +28,7 @@
     "@nestjs/event-emitter": "^1.4.1",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/schedule": "^4.0.1",
     "@prisma/client": "^5.8.1",
     "@types/jsonwebtoken": "^9.0.2",
     "axios": "^0.27.2",
