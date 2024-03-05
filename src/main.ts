@@ -5,9 +5,20 @@ import { HttpExceptionFilter } from './filter/http-exception.filter';
 import helmet from 'helmet';
 import * as requestIp from 'request-ip';
 import * as bodyParser from 'body-parser';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {});
+
+  // Enable CORS
+  app.enableCors({
+    credentials: true,
+    origin: [
+      'http://localhost:8000',
+      'https://gloo-writing.vercel.app',
+      'https://www.gloo-lighter.com',
+    ],
+  });
 
   // MiddleWares
   app.use(requestIp.mw());
