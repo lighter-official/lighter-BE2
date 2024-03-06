@@ -102,15 +102,17 @@ export class UsersService {
 
     const user = await this.prismaService.user.findUnique({
       where: { id },
-      select: { id: true },
     });
     if (!user)
       throw new Exception(ExceptionCode.NotFound, 'DB에 해당 정보가 없습니다.');
 
+    const hasOnProcessedWritingSession =
+      await this.getHasOnProcessedWritingSession(user);
+
     const accessToken = await this.createAccessToken(user);
     const refreshToken = await this.createRefreshToken(user);
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, hasOnProcessedWritingSession };
   }
 
   async refreshToken(refreshToken: string) {
@@ -193,11 +195,18 @@ export class UsersService {
       user = await this.createUserFromKakao(kakaoId);
       isSignUp = true;
     }
+    const hasOnProcessedWritingSession =
+      await this.getHasOnProcessedWritingSession(user);
 
     const accessToken = await this.createAccessToken(user);
     const refreshToken = await this.createRefreshToken(user);
 
-    return { accessToken, refreshToken, isSignUp };
+    return {
+      accessToken,
+      refreshToken,
+      isSignUp,
+      hasOnProcessedWritingSession,
+    };
   }
 
   async createUserFromKakao(kakaoId: string) {
@@ -230,5 +239,13 @@ export class UsersService {
     }
 
     return deletedUser;
+  }
+
+  async getHasOnProcessedWritingSession(user: User) {
+    const writingSession = await this.prismaService.writingSession.findFirst({
+      where: { userId: user.id, status: 'onProcess' },
+    });
+
+    return !!writingSession;
   }
 }
