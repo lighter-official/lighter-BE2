@@ -31,10 +31,19 @@ export class UsersController {
       code,
       redirectUri,
     };
-    const { accessToken, refreshToken, isSignUp } =
-      await this.usersService.signInWithKakao(signInWithKakaoRequestDto);
+    const {
+      accessToken,
+      refreshToken,
+      isSignUp,
+      hasOnProcessedWritingSession,
+    } = await this.usersService.signInWithKakao(signInWithKakaoRequestDto);
 
-    return { accessToken, refreshToken, isSignUp };
+    return {
+      accessToken,
+      refreshToken,
+      isSignUp,
+      hasOnProcessedWritingSession,
+    };
   }
 
   @Get('refresh-token')
