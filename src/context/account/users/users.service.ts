@@ -219,4 +219,16 @@ export class UsersService {
 
     return me;
   }
+
+  async deleteUser(user: User) {
+    const deletedUser = await this.prismaService.user.delete({
+      where: { id: user.id },
+    });
+
+    if (user.providerType === 'kakao') {
+      await this.kakaoService.unlink(user.id);
+    }
+
+    return deletedUser;
+  }
 }

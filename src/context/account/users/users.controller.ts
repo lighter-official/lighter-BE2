@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import {
   SignInWithKakaoRequestDto,
@@ -51,5 +51,11 @@ export class UsersController {
   @Roles(ROLE.USER)
   getMe(@User() user: TUser) {
     return this.usersService.getMe(user);
+  }
+
+  @Delete()
+  @Roles(ROLE.USER)
+  deleteUser(@User() user: TUser) {
+    return this.usersService.deleteUser(user);
   }
 }
