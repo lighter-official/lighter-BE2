@@ -181,7 +181,6 @@ export class UsersService {
 
   async signInWithKakao(signInWithKakaoRequestDto: SignInWithKakaoRequestDto) {
     const { code, redirectUri } = signInWithKakaoRequestDto;
-    console.log(code, redirectUri);
     if (!code || !redirectUri) throw new Error('Bad Request');
 
     const kakaoId = await this.kakaoService.signIn(signInWithKakaoRequestDto);
