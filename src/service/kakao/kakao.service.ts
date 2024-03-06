@@ -13,6 +13,7 @@ export class KakaoService {
   private readonly kapi: AxiosInstance;
   private readonly REST_API_KEY = process.env.KAKAO_REST_API_KEY;
   private readonly ADMIN_KEY = process.env.KAKAO_ADMIN_KEY;
+  private readonly CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET;
 
   constructor() {
     const headers = {
@@ -37,6 +38,7 @@ export class KakaoService {
     const data = QueryString.stringify({
       grant_type: 'authorization_code',
       client_id: this.REST_API_KEY,
+      client_secret: this.CLIENT_SECRET,
       redirect_uri: redirectUri,
       code,
     });
