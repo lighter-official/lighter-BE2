@@ -41,6 +41,8 @@ model WritingSession {
   isActivated        Boolean              @default(false)
   modifyingCount     Int                  @default(0)
   progressPercentage Float                @default(0)
+  nearestStartDate   DateTime?
+  nearestEndDate     DateTime?
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

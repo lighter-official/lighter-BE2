@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, User, WritingSessionStatus } from '@prisma/client';
+import { User, WritingSessionStatus } from '@prisma/client';
 import {
   CreateWritingSessionDto,
   UpdateWritingSessionDto,
@@ -8,6 +8,7 @@ import { PrismaService } from 'src/db/prisma/prisma.service';
 import { Exception, ExceptionCode } from 'src/app.exception';
 import { day } from 'src/lib/dayjs';
 import { Dayjs } from 'dayjs';
+import { WritingSessionStartAt } from './writing-session.type';
 
 @Injectable()
 export class WritingSessionService {
@@ -50,6 +51,10 @@ export class WritingSessionService {
       startAt.minute,
       writingHours,
     );
+    const _nearestStartDate = this.getNearestStartDate(startAt);
+    const _nearestEndDate = _nearestStartDate.add(writingHours, 'hour');
+    const nearestStartDate = new Date(_nearestStartDate as unknown as Date);
+    const nearestEndDate = new Date(_nearestEndDate as unknown as Date);
 
     const writingSession = await this.prismaService.writingSession.create({
       data: {
@@ -60,6 +65,8 @@ export class WritingSessionService {
         writingHours,
         userId: user.id,
         finishedAt,
+        nearestStartDate,
+        nearestEndDate,
       },
     });
 
@@ -99,5 +106,19 @@ export class WritingSessionService {
     });
 
     return writingSession;
+  }
+
+  getNearestStartDate(startAt: WritingSessionStartAt) {
+    const { hour, minute } = startAt;
+    let nearestStartDate = day()
+      .set('hour', hour)
+      .set('minute', minute)
+      .set('second', 0);
+
+    const now = day();
+    if (!nearestStartDate.isBefore(now))
+      nearestStartDate = nearestStartDate.add(1, 'day');
+
+    return nearestStartDate;
   }
 }
