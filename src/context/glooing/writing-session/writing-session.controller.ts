@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Put,
-  Param,
-  ParseIntPipe,
-  Get,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { WritingSessionService } from './writing-session.service';
 import { Roles } from 'src/decorators/roles.decorator';
 import { ROLE } from 'src/context/account/account.constant';
@@ -16,7 +8,6 @@ import {
   CreateWritingSessionDto,
   UpdateWritingSessionDto,
 } from './writing-session.dto';
-import { day } from 'src/lib/dayjs';
 
 @Controller('writing-session')
 export class WritingSessionController {
@@ -40,6 +31,11 @@ export class WritingSessionController {
     return this.writingSessionService.getOnProcessWritingSession(user);
   }
 
+  @Get('cron-tasks')
+  getCronTasks() {
+    return this.writingSessionService.getCronTasks();
+  }
+
   // @Put(':/id')
   // @Roles(ROLE.USER)
   // updateWritingSession(
@@ -53,6 +49,4 @@ export class WritingSessionController {
   //     updateWritingSessionDto,
   //   );
   // }
-
-  //TODO: 글쓰기 활성 크론 추가
 }

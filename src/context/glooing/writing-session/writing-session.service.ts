@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { User, WritingSessionStatus } from '@prisma/client';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { User, WritingSession, WritingSessionStatus } from '@prisma/client';
 import {
   CreateWritingSessionDto,
   UpdateWritingSessionDto,
@@ -7,12 +7,15 @@ import {
 import { PrismaService } from 'src/db/prisma/prisma.service';
 import { Exception, ExceptionCode } from 'src/app.exception';
 import { day } from 'src/lib/dayjs';
-import { Dayjs } from 'dayjs';
 import { WritingSessionStartAt } from './writing-session.type';
-
+import * as cron from 'node-cron';
+import { makeCronExpression } from 'src/context/utils/makeCronExpreesion';
 @Injectable()
-export class WritingSessionService {
+export class WritingSessionService implements OnModuleInit {
   constructor(private readonly prismaService: PrismaService) {}
+  onModuleInit() {
+    this.refreshCronTasks();
+  }
 
   async createWritingSession(
     user: User,
@@ -31,7 +34,6 @@ export class WritingSessionService {
         '진행 중인 글쓰기가 있습니다.',
       );
 
-    const now = day();
     if (
       !page ||
       !period ||
@@ -44,17 +46,10 @@ export class WritingSessionService {
     )
       throw new Exception(ExceptionCode.InsufficientParameters);
 
-    const finishedAt = this.calculateFinishedAt(
-      now,
-      period,
-      startAt.hour,
-      startAt.minute,
-      writingHours,
-    );
-    const _nearestStartDate = this.getNearestStartDate(startAt);
-    const _nearestEndDate = _nearestStartDate.add(writingHours, 'hour');
-    const nearestStartDate = new Date(_nearestStartDate as unknown as Date);
-    const nearestEndDate = new Date(_nearestEndDate as unknown as Date);
+    const _startDate = this.getStartDate(startAt);
+    const startDate = new Date(_startDate as unknown as Date);
+    const _finishDate = _startDate.add(writingHours, 'hour').add(period, 'day');
+    const finishDate = new Date(_finishDate as unknown as Date);
 
     const writingSession = await this.prismaService.writingSession.create({
       data: {
@@ -64,34 +59,14 @@ export class WritingSessionService {
         subject,
         writingHours,
         userId: user.id,
-        finishedAt,
-        nearestStartDate,
-        nearestEndDate,
+        startDate,
+        finishDate,
       },
     });
 
+    this.registerWritingSessionCronJobs(writingSession);
+
     return writingSession;
-  }
-
-  calculateFinishedAt(
-    now: Dayjs,
-    period: number,
-    hour: number,
-    minute: number,
-    writingHours: number,
-  ) {
-    const finishedAt = now
-      .add(period - 1, 'day')
-      .startOf('day')
-      .add(hour + writingHours, 'hour')
-      .add(minute, 'minute')
-      .toDate();
-
-    return finishedAt;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} writingSetting`;
   }
 
   async getOnProcessWritingSession(user: User) {
@@ -108,17 +83,144 @@ export class WritingSessionService {
     return writingSession;
   }
 
-  getNearestStartDate(startAt: WritingSessionStartAt) {
+  getStartDate(startAt: WritingSessionStartAt) {
     const { hour, minute } = startAt;
-    let nearestStartDate = day()
+    let startDate = day()
       .set('hour', hour)
       .set('minute', minute)
       .set('second', 0);
 
     const now = day();
-    if (!nearestStartDate.isBefore(now))
-      nearestStartDate = nearestStartDate.add(1, 'day');
+    if (now.isAfter(startDate)) {
+      startDate = startDate.add(1, 'day');
+    }
 
-    return nearestStartDate;
+    return startDate;
+  }
+
+  private async activateWritingSession(id: number) {
+    const writingSession = await this.prismaService.writingSession.update({
+      where: { id },
+      data: { isActivated: true },
+    });
+
+    return writingSession.isActivated;
+  }
+
+  private async deactivateWritingSession(id: number) {
+    const writingSession = await this.prismaService.writingSession.update({
+      where: { id },
+      data: { isActivated: false },
+    });
+    const now = day().add(1, 'minute');
+    const { finishDate } = writingSession;
+
+    // writingSession종료
+    if (now.isAfter(finishDate)) {
+      await this.updateWritingSessionStatusToCompleteFromOnProcess(id);
+    }
+
+    return writingSession.isActivated;
+  }
+
+  async updateWritingSessionStatusToCompleteFromOnProcess(id: number) {
+    const writingSession = await this.prismaService.writingSession.findUnique({
+      where: { id },
+    });
+
+    const updatedWritingSession =
+      await this.prismaService.writingSession.update({
+        where: { id },
+        data: { status: WritingSessionStatus.completed },
+      });
+    await this.prismaService.cronTask.deleteMany({
+      where: { name: { startsWith: `${writingSession.userId}/` } },
+    });
+
+    return updatedWritingSession;
+  }
+
+  async registerWritingSessionCronJobs(writingSession: WritingSession) {
+    const activateCronName = `${writingSession.userId}/${writingSession.id}/activate`;
+    const activateCronExpression = makeCronExpression(writingSession.startDate);
+    const deactivateCronName = `${writingSession.userId}/${writingSession.id}/deactivate`;
+    const deactivateCronExpression = makeCronExpression(
+      writingSession.finishDate,
+    );
+    cron.schedule(
+      activateCronExpression,
+      () => {
+        this.activateWritingSession(writingSession.id);
+      },
+      { name: activateCronName },
+    );
+    cron.schedule(
+      deactivateCronExpression,
+      () => {
+        this.deactivateWritingSession(writingSession.id);
+      },
+      { name: deactivateCronName },
+    );
+
+    const cronJobs = await this.prismaService.cronTask.createMany({
+      data: [
+        {
+          name: activateCronName,
+          expression: activateCronExpression,
+          type: 'activate',
+        },
+        {
+          name: deactivateCronName,
+          expression: deactivateCronExpression,
+          type: 'deactivate',
+        },
+      ],
+    });
+
+    return cronJobs;
+  }
+
+  async getCronTasks() {
+    const cronTasks = cron.getTasks();
+    const keys = [];
+    for (const [key, value] of cronTasks.entries()) {
+      keys.push(key);
+    }
+
+    return keys;
+  }
+
+  /**
+   * 앱 재시작시 cronTasks 등록
+   */
+  async refreshCronTasks() {
+    const cronTasks = await this.prismaService.cronTask.findMany();
+    console.log(`${cronTasks.length}개 cronJob 다시 등록`);
+
+    cronTasks.forEach(({ name, type, expression }) => {
+      const writingSessionId = Number(name.split('/')[1]);
+
+      switch (type) {
+        case 'activate':
+          cron.schedule(
+            expression,
+            () => {
+              this.activateWritingSession(writingSessionId);
+            },
+            { name },
+          );
+          break;
+
+        case 'deactivate':
+          cron.schedule(
+            expression,
+            () => {
+              this.deactivateWritingSession(writingSessionId);
+            },
+            { name },
+          );
+          break;
+      }
+    });
   }
 }

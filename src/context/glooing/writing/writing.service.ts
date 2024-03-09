@@ -59,6 +59,7 @@ export class WritingService {
     });
 
     // 뱃지 지급
+    // TODO: eventEmitter 활용
     const badgeConditions: BadgeCondition[] = [
       BadgeCondition.firstWritingUploaded,
     ];

@@ -41,12 +41,11 @@ model WritingSession {
   isActivated        Boolean              @default(false)
   modifyingCount     Int                  @default(0)
   progressPercentage Float                @default(0)
-  nearestStartDate   DateTime?
-  nearestEndDate     DateTime?
+  startDate          DateTime?
+  finishDate         DateTime?
 
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  finishedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum WritingSessionStatus {
@@ -96,4 +95,14 @@ enum BadgeCondition {
   partialCompleted75
   completed
   failed
+}
+
+model CronTask {
+  id         Int    @id @default(autoincrement())
+  name       String
+  type       String
+  expression String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
