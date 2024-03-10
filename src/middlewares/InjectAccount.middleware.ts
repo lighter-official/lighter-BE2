@@ -16,8 +16,8 @@ export class InjectAccountMiddleware implements NestMiddleware {
   async use(req: Request, _: Response, next: NextFunction) {
     if (req.baseUrl.includes('refresh-token')) return next();
     if (req.baseUrl.includes('delete')) return next();
-
     const accessToken = req.headers.authorization?.split('Bearer ')[1];
+    console.log(accessToken, req.headers.authorization);
     if (!accessToken || accessToken === null || accessToken === 'null')
       return next();
 
