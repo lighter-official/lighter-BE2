@@ -16,6 +16,6 @@ export type KakaoMe = {
   id: number;
   connected_at: string;
   kakao_account: {
-    profile_nickname: string;
+    profile: { nickname: string };
   };
 };

@@ -202,7 +202,7 @@ export class UsersService {
     }
     await this.prismaService.user.update({
       where: { id: kakaoId, providerType: 'kakao' },
-      data: { nickname: me.kakao_account.profile_nickname },
+      data: { nickname: me.kakao_account.profile.nickname },
     });
     const hasOnProcessedWritingSession =
       await this.getHasOnProcessedWritingSession(user);
