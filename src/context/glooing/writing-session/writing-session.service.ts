@@ -74,7 +74,7 @@ export class WritingSessionService implements OnModuleInit {
       where: { userId: user.id, status: WritingSessionStatus.onProcess },
       include: {
         writings: {
-          select: { id: true, title: true, createdAt: true },
+          select: { id: true, title: true, content: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
         },
       },
