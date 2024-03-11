@@ -185,16 +185,23 @@ export class UsersService {
     const { code, redirectUri } = signInWithKakaoRequestDto;
     if (!code || !redirectUri) throw new Error('Bad Request');
 
-    const kakaoId = await this.kakaoService.signIn(signInWithKakaoRequestDto);
+    const { kakaoId, ...me } = await this.kakaoService.signIn(
+      signInWithKakaoRequestDto,
+    );
 
     let user = await this.prismaService.user.findUnique({
       where: { id: kakaoId },
     });
+
     let isSignUp = false;
     if (!user) {
       user = await this.createUserFromKakao(kakaoId);
       isSignUp = true;
     }
+    await this.prismaService.user.update({
+      where: { id: kakaoId },
+      data: { nickname: me.kakao_account.profile_nickname },
+    });
     const hasOnProcessedWritingSession =
       await this.getHasOnProcessedWritingSession(user);
 

@@ -29,8 +29,9 @@ export class KakaoService {
 
     const tokens = await this.getTokens(code, redirectUri);
     const kakaoId = jwt.decode(tokens.id_token).sub as string;
+    const me = await this.getMe(kakaoId);
 
-    return kakaoId;
+    return { kakaoId, ...me };
   }
 
   async getTokens(code: string, redirectUri: string): Promise<GetTokensData> {
@@ -69,7 +70,6 @@ export class KakaoService {
     const headers = { Authorization: `KakaoAK ${this.ADMIN_KEY}` };
     const response = await this.kapi.post<GetMeData>(url, data, { headers });
     const me = response.data;
-    console.log(me);
 
     return me;
   }
