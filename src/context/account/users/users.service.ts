@@ -189,6 +189,8 @@ export class UsersService {
       signInWithKakaoRequestDto,
     );
 
+    console.log(kakaoId, me);
+
     let user = await this.prismaService.user.findUnique({
       where: { id: kakaoId },
     });
@@ -199,7 +201,7 @@ export class UsersService {
       isSignUp = true;
     }
     await this.prismaService.user.update({
-      where: { id: kakaoId },
+      where: { id: kakaoId, providerType: 'kakao' },
       data: { nickname: me.kakao_account.profile_nickname },
     });
     const hasOnProcessedWritingSession =
