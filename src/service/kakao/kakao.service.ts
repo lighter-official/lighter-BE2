@@ -69,6 +69,7 @@ export class KakaoService {
     const headers = { Authorization: `KakaoAK ${this.ADMIN_KEY}` };
     const response = await this.kapi.post<GetMeData>(url, data, { headers });
     const me = response.data;
+    console.log(me);
 
     return me;
   }
