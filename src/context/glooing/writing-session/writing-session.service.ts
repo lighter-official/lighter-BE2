@@ -47,9 +47,10 @@ export class WritingSessionService implements OnModuleInit {
       throw new Exception(ExceptionCode.InsufficientParameters);
 
     const _startDate = this.getStartDate(startAt);
-    const startDate = new Date(_startDate as unknown as Date);
-    const _finishDate = _startDate.add(writingHours, 'hour').add(period, 'day');
-    const finishDate = new Date(_finishDate as unknown as Date);
+    const startDate = _startDate.toDate();
+    const nearestFinishDate = _startDate.add(writingHours, 'hour');
+    const _finishDate = nearestFinishDate.add(period, 'day');
+    const finishDate = _finishDate.toDate();
 
     const writingSession = await this.prismaService.writingSession.create({
       data: {
@@ -60,7 +61,9 @@ export class WritingSessionService implements OnModuleInit {
         writingHours,
         userId: user.id,
         startDate,
+        nearestStartDate: startDate,
         finishDate,
+        nearestFinishDate: nearestFinishDate.toDate(),
       },
     });
 
@@ -99,18 +102,28 @@ export class WritingSessionService implements OnModuleInit {
   }
 
   private async activateWritingSession(id: number) {
+    const nearestStartDate = day()
+      .add(1, 'day')
+      .set('second', 0)
+      .set('millisecond', 0)
+      .toDate();
     const writingSession = await this.prismaService.writingSession.update({
       where: { id },
-      data: { isActivated: true },
+      data: { isActivated: true, nearestStartDate },
     });
 
     return writingSession.isActivated;
   }
 
   private async deactivateWritingSession(id: number) {
+    const nearestFinishDate = day()
+      .add(1, 'day')
+      .set('second', 0)
+      .set('millisecond', 0)
+      .toDate();
     const writingSession = await this.prismaService.writingSession.update({
       where: { id },
-      data: { isActivated: false },
+      data: { isActivated: false, nearestFinishDate },
     });
     const now = day().add(1, 'minute');
     const { finishDate } = writingSession;
