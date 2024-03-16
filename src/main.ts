@@ -17,6 +17,7 @@ async function bootstrap() {
       'http://localhost:8000',
       'https://gloo-writing.vercel.app',
       'https://www.gloo-lighter.com',
+      'https://lighter-client.vercel.app',
     ],
   });
 
