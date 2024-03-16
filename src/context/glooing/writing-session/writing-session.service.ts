@@ -38,7 +38,6 @@ export class WritingSessionService implements OnModuleInit {
       !page ||
       !period ||
       !startAt ||
-      !startAt.hour ||
       (!startAt.hour && startAt.hour !== 0) ||
       (!startAt.minute && startAt.minute !== 0) ||
       !subject ||
