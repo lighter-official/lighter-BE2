@@ -55,7 +55,7 @@ export class WritingService {
     );
     await this.prismaService.writingSession.update({
       where: { id: writingSession.id },
-      data: { progressPercentage },
+      data: { progressPercentage, isActivated: false },
     });
 
     // 뱃지 지급
