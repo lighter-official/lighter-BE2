@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreateWritingDto, UpdateWritingDto } from './writing.dto';
+import {
+  CreateWritingDto,
+  SubmitWritingDto,
+  TemporarySaveWritingDto,
+  UpdateWritingDto,
+} from './writing.dto';
 import {
   BadgeCondition,
   User,
@@ -10,12 +15,14 @@ import { PrismaService } from 'src/db/prisma/prisma.service';
 import { calculateProgressPercentage } from 'src/context/utils/calculateProgressPercentage';
 import { Exception, ExceptionCode } from 'src/app.exception';
 import { UserBadgeService } from 'src/context/reward/userBadge/userBadge.service';
+import { WritingSessionService } from '../writing-session/writing-session.service';
 
 @Injectable()
 export class WritingService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly userBadgeService: UserBadgeService,
+    private readonly writingSessionsService: WritingSessionService,
   ) {}
 
   async getWriting(user: User, writingId: number) {
@@ -29,6 +36,105 @@ export class WritingService {
     return writing;
   }
 
+  async startWriting(user: User, writingSessionId: number) {
+    const writingSession = await this.prismaService.writingSession.findUnique({
+      where: {
+        id: writingSessionId,
+        userId: user.id,
+        status: WritingSessionStatus.onProcess,
+      },
+      include: { writings: true },
+    });
+    this.barrier_WritingSessionMustBeActivatedWhenCreatingWriting(
+      writingSession,
+    );
+
+    let isNewWriting = false;
+    let writing = writingSession.writings.find(
+      (writing) => writing.step === writingSession.progressStep + 1,
+    );
+    if (!writing) {
+      writing = await this.prismaService.writing.create({
+        data: {
+          step: writingSession.progressStep + 1,
+          writingSession: { connect: { id: writingSessionId } },
+        },
+      });
+      isNewWriting = true;
+    }
+
+    return { writing, isNewWriting };
+  }
+
+  async submitWriting(
+    user: User,
+    writingId: number,
+    submitWritingDto: SubmitWritingDto,
+  ) {
+    const { title, content } = submitWritingDto;
+    if (!title || !content) {
+      throw new Exception(ExceptionCode.InsufficientParameters);
+    }
+
+    const { writingSession } = await this.prismaService.writing.findUnique({
+      where: { id: writingId },
+      select: {
+        writingSession: {
+          select: { id: true, progressStep: true, page: true },
+        },
+      },
+    });
+    const progressStep = Math.min(
+      writingSession.progressStep + 1,
+      writingSession.page,
+    );
+    const progressPercentage = calculateProgressPercentage(
+      writingSession.page,
+      progressStep,
+    );
+
+    // 글쓰기 제출, 달성률 업데이트
+    const submittedWriting = await this.prismaService.writing.update({
+      where: { id: writingId },
+      data: {
+        title,
+        content,
+        writingSession: {
+          update: {
+            progressStep,
+            progressPercentage,
+          },
+        },
+      },
+    });
+
+    // isActivated false로 업데이트
+    await this.writingSessionsService.deactivateWritingSession(
+      writingSession.id,
+    );
+
+    const newBadges =
+      await this.userBadgeService.acquireBadgeBySubmittingWriting(
+        user,
+        progressPercentage,
+      );
+
+    return { writing: submittedWriting, count: progressStep, newBadges };
+  }
+
+  async temporarySaveWriting(
+    user: User,
+    writingId: number,
+    temporarySaveWritingDto: TemporarySaveWritingDto,
+  ) {
+    const { content, title } = temporarySaveWritingDto;
+    await this.prismaService.writing.update({
+      where: { id: writingId, writingSession: { userId: user.id } },
+      data: { title, content },
+    });
+  }
+
+  // TODO: 책임 분해 refactor, deprecated
   async createWriting(user: User, createWritingDto: CreateWritingDto) {
     const { title, content } = createWritingDto;
     if (!title || !content) {
@@ -59,24 +165,11 @@ export class WritingService {
     });
 
     // 뱃지 지급
-    // TODO: eventEmitter 활용
-    const badgeConditions: BadgeCondition[] = [
-      BadgeCondition.firstWritingUploaded,
-    ];
-    if (progressPercentage >= 25)
-      badgeConditions.push(BadgeCondition.partialCompleted25);
-    if (progressPercentage >= 50)
-      badgeConditions.push(BadgeCondition.partialCompleted50);
-    if (progressPercentage >= 75)
-      badgeConditions.push(BadgeCondition.partialCompleted75);
-    if (progressPercentage === 100)
-      badgeConditions.push(BadgeCondition.completed);
-
-    const newBadges = await Promise.all(
-      badgeConditions.map((badgeCondition) =>
-        this.userBadgeService.acquireBadge(user, badgeCondition),
-      ),
-    ).then((userBadges) => userBadges.filter(Boolean));
+    const newBadges =
+      await this.userBadgeService.acquireBadgeBySubmittingWriting(
+        user,
+        progressPercentage,
+      );
 
     return { writing, count: newCount, newBadges };
   }

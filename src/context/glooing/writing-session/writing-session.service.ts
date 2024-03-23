@@ -116,7 +116,7 @@ export class WritingSessionService implements OnModuleInit {
     return writingSession.isActivated;
   }
 
-  private async deactivateWritingSession(id: number) {
+  async deactivateWritingSession(id: number) {
     const nearestFinishDate = day()
       .add(1, 'day')
       .set('second', 0)

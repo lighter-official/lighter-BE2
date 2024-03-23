@@ -5,5 +5,6 @@ import { WritingSessionController } from './writing-session.controller';
 @Module({
   controllers: [WritingSessionController],
   providers: [WritingSessionService],
+  exports: [WritingSessionService],
 })
 export class WritingSessionModule {}
