@@ -33,7 +33,7 @@ export class WritingController {
     return this.writingService.getWriting(user, writingId);
   }
 
-  @Post()
+  @Post('start')
   @Roles(ROLE.USER)
   startWriting(
     @User() user: TUser,
