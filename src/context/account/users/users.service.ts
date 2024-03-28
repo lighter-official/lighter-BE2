@@ -12,7 +12,7 @@ import {
 } from './users.dto';
 import { KakaoService } from 'src/service/kakao/kakao.service';
 import { compare, hash } from 'bcrypt';
-const { TEST_KEY } = process.env;
+const { TEST_KEY, ADMIN_IDS } = process.env;
 
 @Injectable()
 export class UsersService {
@@ -240,6 +240,9 @@ export class UsersService {
   }
 
   async deleteUser(user: User) {
+    const adminIds = ADMIN_IDS.split(',');
+    if (!adminIds.includes(user.id)) return;
+
     const deletedUser = await this.prismaService.user.delete({
       where: { id: user.id },
     });
@@ -247,6 +250,9 @@ export class UsersService {
     if (user.providerType === 'kakao') {
       await this.kakaoService.unlink(user.id);
     }
+    await this.prismaService.cronTask.deleteMany({
+      where: { name: { startsWith: `${user.id}/` } },
+    });
 
     return deletedUser;
   }
