@@ -1,5 +1,10 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { User, WritingSession, WritingSessionStatus } from '@prisma/client';
+import {
+  BadgeCondition,
+  User,
+  WritingSession,
+  WritingSessionStatus,
+} from '@prisma/client';
 import {
   CreateWritingSessionDto,
   UpdateWritingSessionDto,
@@ -10,9 +15,13 @@ import { day } from 'src/lib/dayjs';
 import { WritingSessionStartAt } from './writing-session.type';
 import * as cron from 'node-cron';
 import { makeCronExpression } from 'src/context/utils/makeCronExpreesion';
+import { UserBadgeService } from 'src/context/reward/userBadge/userBadge.service';
 @Injectable()
 export class WritingSessionService implements OnModuleInit {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly userBadgeService: UserBadgeService,
+  ) {}
   onModuleInit() {
     this.refreshCronTasks();
   }
@@ -146,10 +155,17 @@ export class WritingSessionService implements OnModuleInit {
       await this.prismaService.writingSession.update({
         where: { id },
         data: { status: WritingSessionStatus.completed },
+        include: { user: true },
       });
     await this.prismaService.cronTask.deleteMany({
       where: { name: { startsWith: `${writingSession.userId}/` } },
     });
+
+    if (updatedWritingSession.progressPercentage < 75)
+      await this.userBadgeService.acquireBadge(
+        updatedWritingSession.user,
+        BadgeCondition.failed,
+      );
 
     return updatedWritingSession;
   }
