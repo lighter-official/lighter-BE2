@@ -80,7 +80,13 @@ export class WritingService {
       where: { id: writingId },
       select: {
         writingSession: {
-          select: { id: true, progressStep: true, page: true },
+          select: {
+            id: true,
+            progressStep: true,
+            page: true,
+            finishDate: true,
+            nearestStartDate: true,
+          },
         },
       },
     });
@@ -117,6 +123,14 @@ export class WritingService {
       await this.userBadgeService.acquireBadgeBySubmittingWriting(
         user,
         progressPercentage,
+      );
+
+    if (
+      writingSession.finishDate < writingSession.nearestStartDate &&
+      writingSession.progressStep < 75
+    )
+      newBadges.push(
+        await this.userBadgeService.acquireBadge(user, BadgeCondition.failed),
       );
 
     return { writing: submittedWriting, count: progressStep, newBadges };
