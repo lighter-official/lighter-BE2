@@ -13,7 +13,7 @@ import { ROLE } from 'src/context/account/account.constant';
 import { User } from 'src/decorators/user.decorator';
 import { User as TUser } from '@prisma/client';
 
-@Controller('badge')
+@Controller('user-badge')
 export class UserBadgeController {
   constructor(private readonly userBadgeService: UserBadgeService) {}
 }
