@@ -125,7 +125,7 @@ export class WritingSessionService implements OnModuleInit {
     return writingSession.isActivated;
   }
 
-  async deactivateWritingSession(id: number) {
+  async deactivateWritingSession(id: number, byCron: boolean) {
     const nearestFinishDate = day()
       .add(1, 'day')
       .set('second', 0)
@@ -135,33 +135,43 @@ export class WritingSessionService implements OnModuleInit {
       where: { id },
       data: { isActivated: false, nearestFinishDate },
     });
-    const now = day().add(1, 'minute');
-    const { finishDate } = writingSession;
+
+    const { finishDate, nearestStartDate } = writingSession;
 
     // writingSession종료
-    if (now.isAfter(finishDate)) {
-      await this.updateWritingSessionStatusToCompleteFromOnProcess(id);
+    if (day(nearestStartDate).isAfter(finishDate)) {
+      await this.updateWritingSessionStatusToCompleteFromOnProcess(id, byCron);
     }
 
     return writingSession.isActivated;
   }
 
-  async updateWritingSessionStatusToCompleteFromOnProcess(id: number) {
-    const writingSession = await this.prismaService.writingSession.findUnique({
-      where: { id },
-    });
+  async updateWritingSessionStatusToCompleteFromOnProcess(
+    id: number,
+    byCron: boolean,
+  ) {
+    const { userId, progressPercentage } =
+      await this.prismaService.writingSession.findUnique({
+        where: { id },
+        select: { progressPercentage: true, userId: true },
+      });
 
     const updatedWritingSession =
       await this.prismaService.writingSession.update({
         where: { id },
-        data: { status: WritingSessionStatus.completed },
+        data: {
+          status:
+            progressPercentage >= 75
+              ? WritingSessionStatus.completed
+              : WritingSessionStatus.aborted,
+        },
         include: { user: true },
       });
     await this.prismaService.cronTask.deleteMany({
-      where: { name: { startsWith: `${writingSession.userId}/` } },
+      where: { name: { startsWith: `${userId}/` } },
     });
 
-    if (updatedWritingSession.progressPercentage < 75)
+    if (progressPercentage < 75 && byCron)
       await this.userBadgeService.acquireBadge(
         updatedWritingSession.user,
         BadgeCondition.failed,
@@ -187,7 +197,7 @@ export class WritingSessionService implements OnModuleInit {
     cron.schedule(
       deactivateCronExpression,
       () => {
-        this.deactivateWritingSession(writingSession.id);
+        this.deactivateWritingSession(writingSession.id, true);
       },
       { name: deactivateCronName },
     );
@@ -245,12 +255,39 @@ export class WritingSessionService implements OnModuleInit {
           cron.schedule(
             expression,
             () => {
-              this.deactivateWritingSession(writingSessionId);
+              this.deactivateWritingSession(writingSessionId, true);
             },
             { name },
           );
           break;
       }
     });
+  }
+
+  async publishWritingSession(
+    user: User,
+    writingSessionId: number,
+    coverImageType: number,
+  ) {
+    const writingSession = await this.prismaService.writingSession.findUnique({
+      where: { id: writingSessionId },
+    });
+
+    if (writingSession.userId !== user.id)
+      throw new Exception(ExceptionCode.Unauthorized);
+
+    if (writingSession.status !== WritingSessionStatus.completed)
+      throw new Exception(
+        ExceptionCode.BadRequest,
+        '전자책을 발행할 수 없는 상태입니다.',
+      );
+
+    const publishedWritingSession =
+      await this.prismaService.writingSession.update({
+        where: { id: writingSessionId },
+        data: { coverImageType, status: WritingSessionStatus.published },
+      });
+
+    return publishedWritingSession;
   }
 }

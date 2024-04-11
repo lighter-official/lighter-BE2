@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Put,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { WritingSessionService } from './writing-session.service';
 import { Roles } from 'src/decorators/roles.decorator';
 import { ROLE } from 'src/context/account/account.constant';
@@ -34,6 +43,20 @@ export class WritingSessionController {
   @Get('cron-tasks')
   getCronTasks() {
     return this.writingSessionService.getCronTasks();
+  }
+
+  @Put('/:id/publish')
+  @Roles(ROLE.USER)
+  publishWritingSession(
+    @User() user: TUser,
+    @Param('id') id: number,
+    @Query('coverImageType', ParseIntPipe) coverImageType: number,
+  ) {
+    return this.writingSessionService.publishWritingSession(
+      user,
+      id,
+      coverImageType,
+    );
   }
 
   // @Put(':/id')

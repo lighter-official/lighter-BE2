@@ -66,15 +66,6 @@ export class WritingController {
     return this.writingService.submitWriting(user, writingId, submitWritingDto);
   }
 
-  @Post()
-  @Roles(ROLE.USER)
-  createWriting(
-    @User() user: TUser,
-    @Body() createWritingDto: CreateWritingDto,
-  ) {
-    return this.writingService.createWriting(user, createWritingDto);
-  }
-
   @Put(':writingId')
   @Roles(ROLE.USER)
   updateWriting(

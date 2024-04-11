@@ -117,6 +117,7 @@ export class WritingService {
     // isActivated false로 업데이트
     await this.writingSessionsService.deactivateWritingSession(
       writingSession.id,
+      false,
     );
 
     const newBadges =
@@ -149,44 +150,44 @@ export class WritingService {
   }
 
   // TODO: 책임 분해 refactor, deprecated
-  async createWriting(user: User, createWritingDto: CreateWritingDto) {
-    const { title, content } = createWritingDto;
-    if (!title || !content) {
-      throw new Exception(ExceptionCode.InsufficientParameters);
-    }
+  // async createWriting(user: User, createWritingDto: CreateWritingDto) {
+  //   const { title, content } = createWritingDto;
+  //   if (!title || !content) {
+  //     throw new Exception(ExceptionCode.InsufficientParameters);
+  //   }
 
-    const writingSession = await this.prismaService.writingSession.findFirst({
-      where: { userId: user.id, status: WritingSessionStatus.onProcess },
-      include: { _count: { select: { writings: true } } },
-    });
-    this.barrier_WritingSessionMustBeActivatedWhenCreatingWriting(
-      writingSession,
-    );
+  //   const writingSession = await this.prismaService.writingSession.findFirst({
+  //     where: { userId: user.id, status: WritingSessionStatus.onProcess },
+  //     include: { _count: { select: { writings: true } } },
+  //   });
+  //   this.barrier_WritingSessionMustBeActivatedWhenCreatingWriting(
+  //     writingSession,
+  //   );
 
-    const writing = await this.prismaService.writing.create({
-      data: { title, content, writingSessionId: writingSession.id },
-    });
+  //   const writing = await this.prismaService.writing.create({
+  //     data: { title, content, writingSessionId: writingSession.id },
+  //   });
 
-    // 달성율 업데이트
-    const newCount = writingSession._count.writings + 1;
-    const progressPercentage = calculateProgressPercentage(
-      writingSession.page,
-      newCount,
-    );
-    await this.prismaService.writingSession.update({
-      where: { id: writingSession.id },
-      data: { progressPercentage, isActivated: false },
-    });
+  //   // 달성율 업데이트
+  //   const newCount = writingSession._count.writings + 1;
+  //   const progressPercentage = calculateProgressPercentage(
+  //     writingSession.page,
+  //     newCount,
+  //   );
+  //   await this.prismaService.writingSession.update({
+  //     where: { id: writingSession.id },
+  //     data: { progressPercentage, isActivated: false },
+  //   });
 
-    // 뱃지 지급
-    const newBadges =
-      await this.userBadgeService.acquireBadgeBySubmittingWriting(
-        user,
-        progressPercentage,
-      );
+  //   // 뱃지 지급
+  //   const newBadges =
+  //     await this.userBadgeService.acquireBadgeBySubmittingWriting(
+  //       user,
+  //       progressPercentage,
+  //     );
 
-    return { writing, count: newCount, newBadges };
-  }
+  //   return { writing, count: newCount, newBadges };
+  // }
 
   async updateWriting(
     user: User,
