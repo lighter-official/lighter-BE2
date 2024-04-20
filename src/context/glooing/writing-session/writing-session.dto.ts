@@ -8,10 +8,6 @@ export interface CreateWritingSessionDto {
   writingHours: number;
 }
 
-export interface UpdateWritingSessionDto {
-  subject: string;
-  period: number;
-  page: number;
-  startAt: WritingSessionStartAt;
-  writingHours: number;
-}
+export interface UpdateWritingSessionDto extends CreateWritingSessionDto {}
+
+export interface ContinueWritingSessionDto extends CreateWritingSessionDto {}

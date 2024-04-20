@@ -14,6 +14,7 @@ import { ROLE } from 'src/context/account/account.constant';
 import { User } from 'src/decorators/user.decorator';
 import { User as TUser } from '@prisma/client';
 import {
+  ContinueWritingSessionDto,
   CreateWritingSessionDto,
   UpdateWritingSessionDto,
 } from './writing-session.dto';
@@ -59,17 +60,33 @@ export class WritingSessionController {
     );
   }
 
-  // @Put(':/id')
-  // @Roles(ROLE.USER)
-  // updateWritingSession(
-  //   @User() user: TUser,
-  //   @Param('id', ParseIntPipe) id: number,
-  //   @Body() updateWritingSessionDto: UpdateWritingSessionDto,
-  // ) {
-  //   return this.writingSessionService.updateWritingSession(
-  //     id,
-  //     user,
-  //     updateWritingSessionDto,
-  //   );
-  // }
+  @Put(':/id/continue')
+  @Roles(ROLE.USER)
+  continueWritingSession(
+    @User() user: TUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() continueWritingSessionDto: ContinueWritingSessionDto,
+  ) {
+    return this.writingSessionService.updateWritingSession(
+      id,
+      user,
+      continueWritingSessionDto,
+      true,
+    );
+  }
+
+  @Put(':/id')
+  @Roles(ROLE.USER)
+  updateWritingSession(
+    @User() user: TUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateWritingSessionDto: UpdateWritingSessionDto,
+  ) {
+    return this.writingSessionService.updateWritingSession(
+      id,
+      user,
+      updateWritingSessionDto,
+      false,
+    );
+  }
 }

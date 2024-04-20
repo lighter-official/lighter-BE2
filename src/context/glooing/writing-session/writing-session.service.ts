@@ -83,6 +83,79 @@ export class WritingSessionService implements OnModuleInit {
     return writingSession;
   }
 
+  async updateWritingSession(
+    id: number,
+    user: User,
+    updateWritingSessionDto: UpdateWritingSessionDto,
+    forContinue: boolean,
+  ) {
+    const { page, period, startAt, subject, writingHours } =
+      updateWritingSessionDto;
+    const prevWritingSession =
+      await this.prismaService.writingSession.findUnique({ where: { id } });
+
+    if (
+      !page ||
+      !period ||
+      !startAt ||
+      (!startAt.hour && startAt.hour !== 0) ||
+      (!startAt.minute && startAt.minute !== 0) ||
+      !subject ||
+      !writingHours
+    ) {
+      console.log('page:', page, 'period:', period, 'startAt:', startAt);
+      throw new Exception(ExceptionCode.InsufficientParameters);
+    }
+
+    const _startDate = this.getStartDate(startAt);
+    const startDate = _startDate.toDate();
+    const nearestFinishDate = _startDate.add(writingHours, 'hour');
+    const _finishDate = nearestFinishDate.add(period, 'day');
+    const finishDate = _finishDate.toDate();
+
+    const writingSession = await this.prismaService.writingSession.update({
+      where: { id },
+      data: {
+        page,
+        period,
+        startAt,
+        subject,
+        writingHours,
+        userId: user.id,
+        startDate,
+        nearestStartDate: startDate,
+        finishDate,
+        nearestFinishDate: nearestFinishDate.toDate(),
+        status: 'onProcess',
+      },
+    });
+
+    const hasSessionChanged =
+      !forContinue &&
+      (prevWritingSession.period !== writingSession.period ||
+        prevWritingSession.writingHours !== writingSession.writingHours ||
+        prevWritingSession.startAt !== writingSession.startAt);
+
+    if (hasSessionChanged) {
+      const cronTasks = await this.prismaService.cronTask.findMany({
+        where: { name: { startsWith: `${user.id}/${id}` } },
+      });
+
+      for (const { id, name } of cronTasks) {
+        await this.prismaService.cronTask.delete({
+          where: { id },
+        });
+        this.removeCronJob(name);
+      }
+    }
+
+    if (forContinue || hasSessionChanged) {
+      this.registerWritingSessionCronJobs(writingSession);
+    }
+
+    return writingSession;
+  }
+
   async getOnProcessWritingSession(user: User) {
     const writingSession = await this.prismaService.writingSession.findFirst({
       where: { userId: user.id, status: WritingSessionStatus.onProcess },
