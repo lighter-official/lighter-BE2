@@ -18,6 +18,7 @@ import { makeCronExpression } from 'src/context/utils/makeCronExpreesion';
 import { UserBadgeService } from 'src/context/reward/userBadge/userBadge.service';
 @Injectable()
 export class WritingSessionService implements OnModuleInit {
+  private cronTasks = {};
   constructor(
     private readonly prismaService: PrismaService,
     private readonly userBadgeService: UserBadgeService,
@@ -167,9 +168,16 @@ export class WritingSessionService implements OnModuleInit {
         },
         include: { user: true },
       });
-    await this.prismaService.cronTask.deleteMany({
+    const cronTasks = await this.prismaService.cronTask.findMany({
       where: { name: { startsWith: `${userId}/` } },
     });
+
+    for (const { id, name } of cronTasks) {
+      await this.prismaService.cronTask.delete({
+        where: { id },
+      });
+      this.removeCronJob(name);
+    }
 
     if (progressPercentage < 75 && byCron)
       await this.userBadgeService.acquireBadge(
@@ -187,20 +195,13 @@ export class WritingSessionService implements OnModuleInit {
     const deactivateCronExpression = makeCronExpression(
       writingSession.finishDate,
     );
-    cron.schedule(
-      activateCronExpression,
-      () => {
-        this.activateWritingSession(writingSession.id);
-      },
-      { name: activateCronName },
-    );
-    cron.schedule(
-      deactivateCronExpression,
-      () => {
-        this.deactivateWritingSession(writingSession.id, true);
-      },
-      { name: deactivateCronName },
-    );
+
+    this.addCronJob(activateCronName, activateCronExpression, () => {
+      this.activateWritingSession(writingSession.id);
+    });
+    this.addCronJob(deactivateCronName, deactivateCronExpression, () => {
+      this.deactivateWritingSession(writingSession.id, true);
+    });
 
     const cronJobs = await this.prismaService.cronTask.createMany({
       data: [
@@ -236,31 +237,24 @@ export class WritingSessionService implements OnModuleInit {
   async refreshCronTasks() {
     const cronTasks = await this.prismaService.cronTask.findMany();
     console.log(`${cronTasks.length}개 cronJob 다시 등록`);
-
+    const cronTasksMap = cron.getTasks();
     cronTasks.forEach(({ name, type, expression }) => {
       const writingSessionId = Number(name.split('/')[1]);
 
       switch (type) {
         case 'activate':
-          cron.schedule(
-            expression,
-            () => {
-              this.activateWritingSession(writingSessionId);
-            },
-            { name },
-          );
+          this.addCronJob(name, expression, () => {
+            this.activateWritingSession(writingSessionId);
+          });
           break;
 
         case 'deactivate':
-          cron.schedule(
-            expression,
-            () => {
-              this.deactivateWritingSession(writingSessionId, true);
-            },
-            { name },
-          );
+          this.addCronJob(name, expression, () => {
+            this.deactivateWritingSession(writingSessionId, true);
+          });
           break;
       }
+      this.cronTasks[name] = cronTasksMap.get(name);
     });
   }
 
@@ -289,5 +283,33 @@ export class WritingSessionService implements OnModuleInit {
       });
 
     return publishedWritingSession;
+  }
+
+  // TODO: cronJob 관련 메서드들 분리 할 것
+  addCronJob(
+    name: string,
+    cronExpression: string,
+    taskFunction: string | ((now: Date | 'manual' | 'init') => void),
+  ) {
+    if (this.cronTasks[name]) return;
+    const task = cron.schedule(cronExpression, taskFunction, { name });
+    this.cronTasks[name] = task;
+  }
+
+  removeCronJob(name: string) {
+    this.cronTasks[name]?.stop();
+    delete this.cronTasks[name];
+  }
+
+  upsertCronJob(
+    name: string,
+    cronExpression: string,
+    taskFunction: string | ((now: Date | 'manual' | 'init') => void),
+  ) {
+    if (this.cronTasks[name]) {
+      this.removeCronJob(name);
+    }
+
+    this.addCronJob(name, cronExpression, taskFunction);
   }
 }
