@@ -20,7 +20,7 @@ export class InjectAccountMiddleware implements NestMiddleware {
 
     if (!accessToken || accessToken === null || accessToken === 'null')
       return next();
-
+    console.log(111, jwt.decode(accessToken));
     const { role, type } = jwt.decode(accessToken) as {
       role: ROLE;
       type: TOKEN_TYPE;
