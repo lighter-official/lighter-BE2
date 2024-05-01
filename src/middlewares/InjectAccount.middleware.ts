@@ -14,14 +14,13 @@ export class InjectAccountMiddleware implements NestMiddleware {
   constructor(private prismaService: PrismaService) {}
 
   async use(req: Request, _: Response, next: NextFunction) {
-    console.log('미들웨어 리퀘스트', req.url);
+    console.log('리퀘스트 객체', req);
     if (req.baseUrl.includes('refresh-token')) return next();
     if (req.baseUrl.includes('delete')) return next();
     const accessToken = req.headers.authorization?.split('Bearer ')[1];
     console.log('엑세스토큰', accessToken);
     if (!accessToken || accessToken === null || accessToken === 'null')
       return next();
-    console.log(111, jwt.decode(accessToken));
     const { role, type } = jwt.decode(accessToken) as {
       role: ROLE;
       type: TOKEN_TYPE;
