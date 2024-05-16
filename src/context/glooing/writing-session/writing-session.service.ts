@@ -52,10 +52,8 @@ export class WritingSessionService implements OnModuleInit {
       (!startAt.minute && startAt.minute !== 0) ||
       !subject ||
       !writingHours
-    ) {
-      console.log('page:', page, 'period:', period, 'startAt:', startAt);
+    )
       throw new Exception(ExceptionCode.InsufficientParameters);
-    }
 
     const _startDate = this.getStartDate(startAt);
     const startDate = _startDate.toDate();
@@ -102,10 +100,8 @@ export class WritingSessionService implements OnModuleInit {
       (!startAt.minute && startAt.minute !== 0) ||
       !subject ||
       !writingHours
-    ) {
-      console.log('page:', page, 'period:', period, 'startAt:', startAt);
+    )
       throw new Exception(ExceptionCode.InsufficientParameters);
-    }
 
     const _startDate = this.getStartDate(startAt);
     const startDate = _startDate.toDate();

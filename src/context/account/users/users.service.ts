@@ -190,7 +190,7 @@ export class UsersService {
       signInWithKakaoRequestDto,
     );
 
-    console.log(kakaoId, me);
+    console.log(kakaoId, me.id);
 
     let user = await this.prismaService.user.findUnique({
       where: { id: kakaoId },

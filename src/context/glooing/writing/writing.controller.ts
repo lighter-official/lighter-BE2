@@ -39,8 +39,6 @@ export class WritingController {
     @User() user: TUser,
     @Query('writingSessionId', ParseIntPipe) writingSessionId: number,
   ) {
-    console.log('user.id:', user.id);
-    console.log('writingSessionId:', writingSessionId);
     return this.writingService.startWriting(user, writingSessionId);
   }
 
