@@ -233,7 +233,10 @@ export class UsersService {
   async getMe(user: User) {
     const me = await this.prismaService.user.findUnique({
       where: { id: user.id },
-      include: { userBadges: true, writingSessions: true },
+      include: {
+        userBadges: { include: { badge: true } },
+        writingSessions: true,
+      },
     });
 
     return me;
