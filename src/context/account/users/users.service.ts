@@ -183,14 +183,11 @@ export class UsersService {
 
   async signInWithKakao(signInWithKakaoRequestDto: SignInWithKakaoRequestDto) {
     const { code, redirectUri } = signInWithKakaoRequestDto;
-    console.log(code, redirectUri);
     if (!code || !redirectUri) throw new Error('Bad Request');
 
     const { kakaoId, ...me } = await this.kakaoService.signIn(
       signInWithKakaoRequestDto,
     );
-
-    console.log(kakaoId, me.id);
 
     let user = await this.prismaService.user.findUnique({
       where: { id: kakaoId },
