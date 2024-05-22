@@ -60,7 +60,7 @@ export class WritingSessionController {
     );
   }
 
-  @Put(':/id/continue')
+  @Put('/:id/continue')
   @Roles(ROLE.USER)
   continueWritingSession(
     @User() user: TUser,
@@ -75,7 +75,7 @@ export class WritingSessionController {
     );
   }
 
-  @Put(':/id')
+  @Put('/:id')
   @Roles(ROLE.USER)
   updateWritingSession(
     @User() user: TUser,
