@@ -91,6 +91,11 @@ export class WritingSessionService implements OnModuleInit {
       updateWritingSessionDto;
     const prevWritingSession =
       await this.prismaService.writingSession.findUnique({ where: { id } });
+    if (!forContinue && prevWritingSession.modifyingCount >= 3)
+      throw new Exception(
+        ExceptionCode.BadRequest,
+        '수정 횟수를 모두 소진하였습니다.',
+      );
 
     if (
       !page ||
@@ -123,6 +128,7 @@ export class WritingSessionService implements OnModuleInit {
         finishDate,
         nearestFinishDate: nearestFinishDate.toDate(),
         status: 'onProcess',
+        modifyingCount: forContinue ? undefined : { increment: 1 },
       },
     });
 
