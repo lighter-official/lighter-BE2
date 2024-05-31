@@ -128,7 +128,9 @@ export class WritingSessionService implements OnModuleInit {
         finishDate,
         nearestFinishDate: nearestFinishDate.toDate(),
         status: 'onProcess',
-        modifyingCount: forContinue ? undefined : { increment: 1 },
+        modifyingCount: forContinue
+          ? prevWritingSession.modifyingCount
+          : { increment: 1 },
       },
     });
 
