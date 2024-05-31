@@ -17,14 +17,7 @@ export class InjectAccountMiddleware implements NestMiddleware {
     if (req.baseUrl.includes('refresh-token')) return next();
     if (req.baseUrl.includes('delete')) return next();
     const accessToken = req.headers.authorization?.split('Bearer ')[1];
-    console.log(
-      'url:',
-      req.url,
-      'accessToken',
-      accessToken,
-      '타입:',
-      typeof accessToken,
-    );
+
     if (!accessToken || accessToken === null || accessToken === 'null')
       return next();
     const { role, type } = jwt.decode(accessToken) as {
