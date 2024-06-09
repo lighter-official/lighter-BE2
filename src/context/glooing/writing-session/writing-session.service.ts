@@ -142,6 +142,7 @@ export class WritingSessionService implements OnModuleInit {
         modifyingCount: forContinue
           ? prevWritingSession.modifyingCount
           : { increment: 1 },
+        isActivated: false,
       },
     });
     console.log(nearestStartDate, nearestFinishDate);
