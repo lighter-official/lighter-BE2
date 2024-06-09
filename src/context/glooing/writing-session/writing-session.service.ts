@@ -110,7 +110,18 @@ export class WritingSessionService implements OnModuleInit {
 
     const _startDate = this.getStartDate(startAt, prevWritingSession.startDate);
     const startDate = _startDate.toDate();
-    const nearestFinishDate = _startDate.add(writingHours, 'hour');
+    const nearestStartDate = forContinue
+      ? startDate
+      : day()
+          .add(1, 'day')
+          .set('hour', startAt.hour)
+          .set('minute', startAt.minute)
+          .set('second', 0)
+          .toDate();
+    const nearestFinishDate = forContinue
+      ? _startDate
+      : day(nearestStartDate).add(writingHours, 'hour');
+
     const _finishDate = nearestFinishDate.add(period, 'day');
     const finishDate = _finishDate.toDate();
 
@@ -124,7 +135,7 @@ export class WritingSessionService implements OnModuleInit {
         writingHours,
         userId: user.id,
         startDate,
-        nearestStartDate: startDate,
+        nearestStartDate,
         finishDate,
         nearestFinishDate: nearestFinishDate.toDate(),
         status: 'onProcess',
