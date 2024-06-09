@@ -11,14 +11,13 @@ datasource db {
 }
 
 model User {
-  id                String           @id
-  nickname          String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  writingSessions   WritingSession[]
-  providerType      ProviderType
-  encryptedPassword String?
-  userBadges        userBadge[]
+  id              String           @id
+  nickname        String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  writingSessions WritingSession[]
+  providerType    ProviderType
+  userBadges      userBadge[]
 }
 
 enum ProviderType {
