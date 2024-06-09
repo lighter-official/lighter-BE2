@@ -108,7 +108,7 @@ export class WritingSessionService implements OnModuleInit {
     )
       throw new Exception(ExceptionCode.InsufficientParameters);
 
-    const _startDate = this.getStartDate(startAt);
+    const _startDate = this.getStartDate(startAt, prevWritingSession.startDate);
     const startDate = _startDate.toDate();
     const nearestFinishDate = _startDate.add(writingHours, 'hour');
     const _finishDate = nearestFinishDate.add(period, 'day');
@@ -134,28 +134,19 @@ export class WritingSessionService implements OnModuleInit {
       },
     });
 
-    const hasSessionChanged =
-      !forContinue &&
-      (prevWritingSession.period !== writingSession.period ||
-        prevWritingSession.writingHours !== writingSession.writingHours ||
-        prevWritingSession.startAt !== writingSession.startAt);
+    // 크론 재등록
+    const cronTasks = await this.prismaService.cronTask.findMany({
+      where: { name: { startsWith: `${user.id}/${id}` } },
+    });
 
-    if (hasSessionChanged) {
-      const cronTasks = await this.prismaService.cronTask.findMany({
-        where: { name: { startsWith: `${user.id}/${id}` } },
+    for (const { id, name } of cronTasks) {
+      await this.prismaService.cronTask.delete({
+        where: { id },
       });
-
-      for (const { id, name } of cronTasks) {
-        await this.prismaService.cronTask.delete({
-          where: { id },
-        });
-        this.removeCronJob(name);
-      }
+      this.removeCronJob(name);
     }
 
-    if (forContinue || hasSessionChanged) {
-      this.registerWritingSessionCronJobs(writingSession);
-    }
+    this.registerWritingSessionCronJobs(writingSession);
 
     return writingSession;
   }
@@ -174,9 +165,9 @@ export class WritingSessionService implements OnModuleInit {
     return writingSession;
   }
 
-  getStartDate(startAt: WritingSessionStartAt) {
+  getStartDate(startAt: WritingSessionStartAt, prevStartDate?: Date) {
     const { hour, minute } = startAt;
-    let startDate = day()
+    let startDate = (prevStartDate ? day(prevStartDate) : day())
       .set('hour', hour)
       .set('minute', minute)
       .set('second', 0);
