@@ -144,6 +144,7 @@ export class WritingSessionService implements OnModuleInit {
           : { increment: 1 },
       },
     });
+    console.log(nearestStartDate, nearestFinishDate);
 
     // 크론 재등록
     const cronTasks = await this.prismaService.cronTask.findMany({
