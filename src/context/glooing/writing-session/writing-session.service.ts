@@ -122,7 +122,7 @@ export class WritingSessionService implements OnModuleInit {
       ? _startDate
       : day(nearestStartDate).add(writingHours, 'hour');
 
-    const _finishDate = nearestFinishDate.add(period, 'day');
+    const _finishDate = _startDate.add(writingHours, 'hour').add(period, 'day');
     const finishDate = _finishDate.toDate();
 
     const writingSession = await this.prismaService.writingSession.update({
