@@ -14,13 +14,13 @@ import { User } from 'src/decorators/user.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post('sign-up/test') testSignUp(@Body() testSignUpDto: TestSignUpDto) {
-    return this.usersService.testSignUp(testSignUpDto);
-  }
+  // @Post('sign-up/test') testSignUp(@Body() testSignUpDto: TestSignUpDto) {
+  //   return this.usersService.testSignUp(testSignUpDto);
+  // }
 
-  @Post('sign-in/test') testSignIn(@Body() testSignInDto: TestSignInDto) {
-    return this.usersService.testSignIn(testSignInDto);
-  }
+  // @Post('sign-in/test') testSignIn(@Body() testSignInDto: TestSignInDto) {
+  //   return this.usersService.testSignIn(testSignInDto);
+  // }
 
   @Post('sign-in/kakao')
   async signInWithKakao(

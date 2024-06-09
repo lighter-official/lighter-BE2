@@ -21,44 +21,44 @@ export class UsersService {
     private kakaoService: KakaoService,
   ) {}
 
-  async testSignUp(testSignUpDto: TestSignUpDto) {
-    const { id, password, testKey } = testSignUpDto;
+  // async testSignUp(testSignUpDto: TestSignUpDto) {
+  //   const { id, password, testKey } = testSignUpDto;
 
-    if (!id || !password || !testKey)
-      throw new Exception(ExceptionCode.InsufficientParameters);
-    if (testKey !== TEST_KEY) throw new Exception(ExceptionCode.Unauthorized);
+  //   if (!id || !password || !testKey)
+  //     throw new Exception(ExceptionCode.InsufficientParameters);
+  //   if (testKey !== TEST_KEY) throw new Exception(ExceptionCode.Unauthorized);
 
-    const existingUser = await this.prismaService.user.findUnique({
-      where: { id, providerType: ProviderType.test },
-      select: { id: true },
-    });
-    if (existingUser)
-      throw new Exception(
-        ExceptionCode.AlreadyUsedValue,
-        '이미 사용중인 id입니다.',
-      );
+  //   const existingUser = await this.prismaService.user.findUnique({
+  //     where: { id, providerType: ProviderType.test },
+  //     select: { id: true },
+  //   });
+  //   if (existingUser)
+  //     throw new Exception(
+  //       ExceptionCode.AlreadyUsedValue,
+  //       '이미 사용중인 id입니다.',
+  //     );
 
-    const encryptedPassword = await this.encryptPassword(password);
-    const user = await this.prismaService.user.create({
-      data: {
-        id,
-        providerType: 'test',
-        encryptedPassword,
-      },
-      select: { id: true },
-    });
+  //   const encryptedPassword = await this.encryptPassword(password);
+  //   const user = await this.prismaService.user.create({
+  //     data: {
+  //       id,
+  //       providerType: 'test',
+  //       encryptedPassword,
+  //     },
+  //     select: { id: true },
+  //   });
 
-    const accessToken = await this.createAccessToken(user);
-    const refreshToken = await this.createRefreshToken(user);
+  //   const accessToken = await this.createAccessToken(user);
+  //   const refreshToken = await this.createRefreshToken(user);
 
-    return { accessToken, refreshToken };
-  }
+  //   return { accessToken, refreshToken };
+  // }
 
-  async encryptPassword(password: string): Promise<string> {
-    const encryptedPassword = hash(password, 10);
+  // async encryptPassword(password: string): Promise<string> {
+  //   const encryptedPassword = hash(password, 10);
 
-    return encryptedPassword;
-  }
+  //   return encryptedPassword;
+  // }
 
   async stopSignInWhenNoTestUserExist(id: string) {
     const user = await this.prismaService.user.findUnique({
@@ -72,48 +72,48 @@ export class UsersService {
     return;
   }
 
-  async stopSignInWhenPasswordIsIncorrect(id: string, password: string) {
-    const isVerified = await this.verifyPassword(id, password);
-    if (!isVerified) throw new Exception(ExceptionCode.BadRequest);
+  // async stopSignInWhenPasswordIsIncorrect(id: string, password: string) {
+  //   const isVerified = await this.verifyPassword(id, password);
+  //   if (!isVerified) throw new Exception(ExceptionCode.BadRequest);
 
-    return;
-  }
+  //   return;
+  // }
 
-  async verifyPassword(id: string, password: string): Promise<boolean> {
-    const { encryptedPassword } = await this.prismaService.user.findUnique({
-      where: { id },
-      select: { encryptedPassword: true },
-    });
-    if (!encryptedPassword)
-      throw new Exception(ExceptionCode.NotFound, 'DB에 해당 정보가 없습니다.');
+  // async verifyPassword(id: string, password: string): Promise<boolean> {
+  //   const { encryptedPassword } = await this.prismaService.user.findUnique({
+  //     where: { id },
+  //     select: { encryptedPassword: true },
+  //   });
+  //   if (!encryptedPassword)
+  //     throw new Exception(ExceptionCode.NotFound, 'DB에 해당 정보가 없습니다.');
 
-    return compare(password, encryptedPassword);
-  }
+  //   return compare(password, encryptedPassword);
+  // }
 
-  async testSignIn(testSignInDto: TestSignInDto) {
-    const { id, password, testKey } = testSignInDto;
+  // async testSignIn(testSignInDto: TestSignInDto) {
+  //   const { id, password, testKey } = testSignInDto;
 
-    if (!id || !password || !testKey)
-      throw new Exception(ExceptionCode.InsufficientParameters);
-    if (testKey !== TEST_KEY) throw new Exception(ExceptionCode.Unauthorized);
+  //   if (!id || !password || !testKey)
+  //     throw new Exception(ExceptionCode.InsufficientParameters);
+  //   if (testKey !== TEST_KEY) throw new Exception(ExceptionCode.Unauthorized);
 
-    await this.stopSignInWhenNoTestUserExist(id);
-    await this.stopSignInWhenPasswordIsIncorrect(id, password);
+  //   await this.stopSignInWhenNoTestUserExist(id);
+  //   await this.stopSignInWhenPasswordIsIncorrect(id, password);
 
-    const user = await this.prismaService.user.findUnique({
-      where: { id },
-    });
-    if (!user)
-      throw new Exception(ExceptionCode.NotFound, 'DB에 해당 정보가 없습니다.');
+  //   const user = await this.prismaService.user.findUnique({
+  //     where: { id },
+  //   });
+  //   if (!user)
+  //     throw new Exception(ExceptionCode.NotFound, 'DB에 해당 정보가 없습니다.');
 
-    const hasOnProcessedWritingSession =
-      await this.getHasOnProcessedWritingSession(user);
+  //   const hasOnProcessedWritingSession =
+  //     await this.getHasOnProcessedWritingSession(user);
 
-    const accessToken = await this.createAccessToken(user);
-    const refreshToken = await this.createRefreshToken(user);
+  //   const accessToken = await this.createAccessToken(user);
+  //   const refreshToken = await this.createRefreshToken(user);
 
-    return { accessToken, refreshToken, hasOnProcessedWritingSession };
-  }
+  //   return { accessToken, refreshToken, hasOnProcessedWritingSession };
+  // }
 
   async refreshToken(refreshToken: string) {
     try {
