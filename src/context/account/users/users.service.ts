@@ -232,7 +232,7 @@ export class UsersService {
       where: { id: user.id },
       include: {
         userBadges: { include: { badge: true } },
-        writingSessions: true,
+        writingSessions: { orderBy: { finishDate: 'desc' } },
       },
     });
 
