@@ -199,12 +199,16 @@ export class WritingSessionService implements OnModuleInit {
       .set('second', 0)
       .set('millisecond', 0)
       .toDate();
-    const writingSession = await this.prismaService.writingSession.update({
-      where: { id },
-      data: { isActivated: true, nearestStartDate },
-    });
+    try {
+      const writingSession = await this.prismaService.writingSession.update({
+        where: { id },
+        data: { isActivated: true, nearestStartDate },
+      });
 
-    return writingSession.isActivated;
+      return writingSession.isActivated;
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   async deactivateWritingSession(id: number, byCron: boolean) {
@@ -213,19 +217,26 @@ export class WritingSessionService implements OnModuleInit {
       .set('second', 0)
       .set('millisecond', 0)
       .toDate();
-    const writingSession = await this.prismaService.writingSession.update({
-      where: { id },
-      data: { isActivated: false, nearestFinishDate },
-    });
+    try {
+      const writingSession = await this.prismaService.writingSession.update({
+        where: { id },
+        data: { isActivated: false, nearestFinishDate },
+      });
 
-    const { finishDate, nearestStartDate } = writingSession;
+      const { finishDate, nearestStartDate } = writingSession;
 
-    // writingSession종료
-    if (day(nearestStartDate).isAfter(finishDate)) {
-      await this.updateWritingSessionStatusToCompleteFromOnProcess(id, byCron);
+      // writingSession종료
+      if (day(nearestStartDate).isAfter(finishDate)) {
+        await this.updateWritingSessionStatusToCompleteFromOnProcess(
+          id,
+          byCron,
+        );
+      }
+
+      return writingSession.isActivated;
+    } catch (e) {
+      console.log(e);
     }
-
-    return writingSession.isActivated;
   }
 
   async updateWritingSessionStatusToCompleteFromOnProcess(
