@@ -108,19 +108,18 @@ export class WritingSessionService implements OnModuleInit {
     )
       throw new Exception(ExceptionCode.InsufficientParameters);
 
-    const _startDate = this.getStartDate(startAt, prevWritingSession.startDate);
+    const _startDate = this.getStartDate(
+      startAt,
+      forContinue ? undefined : prevWritingSession.startDate,
+    );
     const startDate = _startDate.toDate();
-    const nearestStartDate = forContinue
-      ? startDate
-      : day()
-          .add(1, 'day')
-          .set('hour', startAt.hour)
-          .set('minute', startAt.minute)
-          .set('second', 0)
-          .toDate();
-    const nearestFinishDate = forContinue
-      ? _startDate
-      : day(nearestStartDate).add(writingHours, 'hour');
+    const nearestStartDate = day()
+      .add(1, 'day')
+      .set('hour', startAt.hour)
+      .set('minute', startAt.minute)
+      .set('second', 0)
+      .toDate();
+    const nearestFinishDate = day(nearestStartDate).add(writingHours, 'hour');
 
     const _finishDate = _startDate.add(writingHours, 'hour').add(period, 'day');
     const finishDate = _finishDate.toDate();
@@ -139,13 +138,10 @@ export class WritingSessionService implements OnModuleInit {
         finishDate,
         nearestFinishDate: nearestFinishDate.toDate(),
         status: 'onProcess',
-        modifyingCount: forContinue
-          ? prevWritingSession.modifyingCount
-          : { increment: 1 },
+        modifyingCount: forContinue ? 0 : { increment: 1 },
         isActivated: false,
       },
     });
-    console.log(nearestStartDate, nearestFinishDate);
 
     // 크론 재등록
     const cronTasks = await this.prismaService.cronTask.findMany({
