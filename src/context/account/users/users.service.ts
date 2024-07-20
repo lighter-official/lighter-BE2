@@ -232,7 +232,10 @@ export class UsersService {
       where: { id: user.id },
       include: {
         userBadges: { include: { badge: true } },
-        writingSessions: { orderBy: { finishDate: 'desc' } },
+        writingSessions: {
+          orderBy: { finishDate: 'desc' },
+          include: { writings: { orderBy: { createdAt: 'asc' } } },
+        },
       },
     });
 

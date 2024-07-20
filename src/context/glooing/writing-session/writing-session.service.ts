@@ -140,6 +140,9 @@ export class WritingSessionService implements OnModuleInit {
         status: 'onProcess',
         modifyingCount: forContinue ? 0 : { increment: 1 },
         isActivated: false,
+        continuedCount: forContinue
+          ? { increment: 1 }
+          : prevWritingSession.continuedCount,
       },
     });
 
